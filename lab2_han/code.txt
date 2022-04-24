@@ -1,0 +1,64 @@
+import os
+# Avoid reinstalling packages that are available on edstem
+if not os.getenv("ED_COURSE_ID"):
+    !pip install tensorflow stable_baselines3 torch collections gym box2d-py --user
+
+# Import gym libraries
+import gym 
+
+#Import stable bbaselines libraries
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import VecFrameStack
+from stable_baselines3.common.evaluation import evaluate_policy
+
+# Make the racing car environment from the Gym library
+environment_name = "CarRacing-v1"
+env = gym.make(environment_name)
+
+#TODO: Write code to inspect the action space of the environment
+env.action_space
+
+#TODO: Write code to inspect the observation space of the environment
+env.observation_space
+
+# Trigger Ed's X display to visualize the environment
+!xdpyinfo
+
+# Test five episodes of taking random Actions
+# in the environment
+episodes = 5
+for episode in range(1, episodes+1):
+    state = env.reset()
+    done = False
+    score = 0 
+    
+    while not done:
+        env.render()
+        action = env.action_space.sample()
+        n_state, reward, done, info = env.step(action)
+        score+=reward
+    print('Episode:{} Score:{}'.format(episode, score))
+    
+env.close()
+
+
+log_path = os.path.join('ReinforcementLearning/SelfDriving/Training', 'Logs')
+model = PPO("CnnPolicy", env, verbose=1, tensorboard_log=log_path)
+
+model.learn(total_timesteps=100000)
+
+ppo_path = os.path.join('Training', 'Saved Models', 'PPO_Driving_model')
+
+model.save(ppo_path)
+
+evaluate_policy(model, env, n_eval_episodes=10, render=True)
+
+env.close()
+
+obs = env.reset()
+while True:
+    action, _states = model.predict(obs)
+    obs, rewards, dones, info = env.step(action)
+    env.render()
+
+env.close()
